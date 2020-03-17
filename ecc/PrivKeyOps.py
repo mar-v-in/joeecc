@@ -150,6 +150,21 @@ class PrivKeyOpEDDSASign(object):
 		sig = self.EDDSASignature(self.curve, R, s)
 		return sig
 
+class PrivKeyOpSEDDSASign(object):
+	@staticmethod
+	def __eddsa_hash(data):
+		return hashlib.sha512(data).digest()
+
+	def seddsa_sign(self, message, random):
+		assert(self.curve.curvetype == "twistededwards")
+		assert(len(random) == 32)
+		rh = self.__eddsa_hash(Tools.inttobytes_le(self.scalar, 32) + random)[0:32]
+		r = Tools.bytestoint_le(self.__eddsa_hash(rh + message)) % self.curve.n
+		R = r * self.curve.G
+		s = (r + Tools.bytestoint_le(self.__eddsa_hash(R.eddsa_encode() + self.pubkey.point.eddsa_encode() + message)) * self.scalar) % self.curve.n
+		sig = PrivKeyOpEDDSASign.EDDSASignature(self.curve, R, s)
+		return sig
+
 
 class PrivKeyOpEDDSAKeyGen(object):
 	@staticmethod
